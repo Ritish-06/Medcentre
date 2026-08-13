@@ -1,2 +1,1 @@
-# Medcentre
-MedCentre is a full-stack healthcare platform connecting patients, doctors, pharmacies, and administrators. It enables medicine search, prescription scanning, pharmacy availability, cart and order management, doctor appointments, digital health records, and medication notifications.
+MedCentre is an AI-powered, full-stack healthcare platform that connects patients, doctors, pharmacies, and administrators in one secure ecosystem, enabling medicine discovery, AI-powered prescription scanning, real-time pharmacy availability, cart and order management, doctor appointments, digital health records, medication reminders, and role-based healthcare management.
