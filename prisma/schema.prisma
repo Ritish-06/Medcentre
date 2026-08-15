@@ -1,0 +1,371 @@
+// Prisma Schema for MedCentre (Full Healthcare Platform)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// System Health Model
+model SystemHealth {
+  id        String   @id @default(uuid())
+  service   String
+  status    String   @default("ok")
+  checkedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// User Model for Authentication & Role Access
+model User {
+  id            String               @id @default(uuid())
+  name          String
+  email         String               @unique
+  phone         String?
+  password      String               // Hashed password
+  role          String               @default("PATIENT") // PATIENT, DOCTOR, PHARMACY, ADMIN
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  pharmacy      Pharmacy?
+  doctorProfile DoctorProfile?
+  prescriptions Prescription[]
+  cart          Cart?
+  orders        Order[]
+  appointments  Appointment[]
+  healthRecords HealthRecord[]
+  reminders     MedicationReminder[]
+  notifications Notification[]
+}
+
+// Doctor Profile Model
+model DoctorProfile {
+  id              String         @id @default(uuid())
+  userId          String?        @unique
+  name            String
+  speciality      String         // e.g. Cardiology, Dermatology, General Medicine, Pediatrics, Orthopedics, Neurology
+  qualification   String         // e.g. MBBS, MD (Cardiology), MRCP
+  experience      Int            // Years of experience
+  consultationFee Float          // Fee per appointment
+  location        String         // Clinical clinic/hospital location
+  languages       String         // e.g. English, Spanish, Hindi
+  about           String?        // Biography & clinical focus
+  availableDays   String         @default("Mon,Tue,Wed,Thu,Fri")
+  slotDuration    Int            @default(30) // Slot length in minutes
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appointments    Appointment[]
+  prescriptions   Prescription[]
+
+  @@index([speciality])
+  @@index([location])
+}
+
+// Patient Appointment Model
+model Appointment {
+  id                String        @id @default(uuid())
+  appointmentNumber String        @unique
+  patientId         String
+  doctorId          String
+  date              String        // Format: YYYY-MM-DD
+  time              String        // Format: 09:00 AM, 10:30 AM
+  status            String        @default("PENDING") // PENDING, CONFIRMED, REJECTED, RESCHEDULED, COMPLETED, CANCELLED
+  reason            String
+  notes             String?
+  rescheduledToDate String?
+  rescheduledToTime String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  patient           User          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor            DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([date, time])
+  @@index([status])
+}
+
+// Medicine Database Model
+model Medicine {
+  id                    String                 @id @default(uuid())
+  name                  String
+  genericName           String
+  brandName             String
+  strength              String
+  dosageForm            String
+  category              String
+  manufacturer          String
+  prescriptionRequired  Boolean                @default(false)
+  activeIngredients     String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  inventories           MedicineInventory[]
+  prescriptionMedicines PrescriptionMedicine[]
+  cartItems             CartItem[]
+  orderItems            OrderItem[]
+}
+
+// Pharmacy Entity Model
+model Pharmacy {
+  id                String              @id @default(uuid())
+  userId            String?             @unique
+  name              String              @unique
+  address           String
+  latitude          Float?
+  longitude         Float?
+  phone             String
+  openingHours      String              @default("8:00 AM - 10:00 PM")
+  deliveryAvailable Boolean             @default(true)
+  pickupAvailable   Boolean             @default(true)
+  active            Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  user              User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  inventories       MedicineInventory[]
+  cartItems         CartItem[]
+  orders            Order[]
+}
+
+// Medicine Inventory System Model
+model MedicineInventory {
+  id          String   @id @default(uuid())
+  pharmacyId  String
+  medicineId  String
+  SKU         String
+  batchNumber String
+  expiryDate  DateTime
+  quantity    Int
+  price       Float
+  MRP         Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+  medicine    Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+
+  @@index([pharmacyId])
+  @@index([medicineId])
+}
+
+// Prescription Document Model
+model Prescription {
+  id            String                 @id @default(uuid())
+  userId        String
+  doctorId      String?                // Set when issued by a doctor
+  fileUrl       String?                // Optional for digital prescriptions
+  fileName      String                 // e.g. "Digital_Prescription_Sarah_Connor.pdf" or upload name
+  fileType      String                 @default("DIGITAL") // DIGITAL, image/jpeg, application/pdf
+  fileSize      Int                    @default(0)
+  status        String                 @default("PENDING_VERIFICATION") // VERIFIED immediately if doctor-issued
+  verifiedAt    DateTime?
+  notes         String?                // Clinical instructions
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doctor        DoctorProfile?         @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  ocrResult     OCRResult?
+  medicines     PrescriptionMedicine[]
+  orders        Order[]
+  healthRecords HealthRecord[]
+
+  @@index([userId])
+  @@index([doctorId])
+}
+
+// OCR Processing Result Model
+model OCRResult {
+  id             String       @id @default(uuid())
+  prescriptionId String       @unique
+  rawText        String
+  confidence     Float        @default(0.92)
+  processedAt    DateTime     @default(now())
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+}
+
+// Extracted Prescription Medicine Items
+model PrescriptionMedicine {
+  id             String       @id @default(uuid())
+  prescriptionId String
+  medicineId     String?
+  medicineName   String
+  strength       String
+  dosageForm     String       @default("Tablet")
+  frequency      String       @default("Once daily")
+  duration       String       @default("5 days")
+  quantity       Int          @default(10)
+  confidence     Float        @default(0.90)
+  isVerified     Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medicine       Medicine?    @relation(fields: [medicineId], references: [id], onDelete: SetNull)
+
+  @@index([prescriptionId])
+}
+
+// Patient Health Record Model
+model HealthRecord {
+  id             String        @id @default(uuid())
+  userId         String
+  title          String        // e.g. "Complete Blood Count Report"
+  category       String        // "PRESCRIPTIONS", "LAB_REPORTS", "MEDICAL_DOCUMENTS", "DOCTOR_VISITS"
+  fileUrl        String?
+  fileName       String
+  fileType       String        @default("application/pdf")
+  fileSize       Int           @default(0)
+  recordDate     String        // YYYY-MM-DD
+  doctorName     String?
+  description    String?
+  prescriptionId String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prescription   Prescription? @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([category])
+}
+
+// Medication Reminder Model
+model MedicationReminder {
+  id           String         @id @default(uuid())
+  userId       String
+  medicineName String
+  dose         String         // e.g. "1 Capsule (500mg)"
+  time         String         // e.g. "08:00 AM"
+  frequency    String         @default("ONCE_DAILY") // ONCE_DAILY, TWICE_DAILY, THREE_TIMES_DAILY, AS_NEEDED
+  startDate    String         // YYYY-MM-DD
+  endDate      String         // YYYY-MM-DD
+  instructions String?
+  isActive     Boolean        @default(true)
+  snoozedUntil DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adherenceLogs AdherenceLog[]
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+// Medication Adherence Log Model
+model AdherenceLog {
+  id         String             @id @default(uuid())
+  reminderId String
+  action     String             // TAKEN, SKIPPED, SNOOZED
+  actionDate String             // YYYY-MM-DD
+  actionTime String             // HH:MM
+  notes      String?
+  createdAt  DateTime           @default(now())
+  reminder   MedicationReminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  @@index([reminderId])
+  @@index([actionDate])
+}
+
+// System & User Notifications Model
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // PRESCRIPTION_PROCESSED, PRESCRIPTION_VERIFIED, ORDER_CONFIRMED, ORDER_PREPARING, ORDER_READY, ORDER_DELIVERED, APPOINTMENT_CONFIRMED, APPOINTMENT_REMINDER, MEDICINE_REMINDER, SYSTEM
+  link      String?  // e.g. "/orders", "/appointments", "/reminders", "/health-records"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+// Shopping Cart Model
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+// Shopping Cart Item Model
+model CartItem {
+  id         String   @id @default(uuid())
+  cartId     String
+  medicineId String
+  pharmacyId String
+  quantity   Int
+  unitPrice  Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  pharmacy   Pharmacy @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+  @@index([medicineId])
+  @@index([pharmacyId])
+}
+
+// Order Entity Model
+model Order {
+  id              String        @id @default(uuid())
+  orderNumber     String        @unique
+  userId          String
+  pharmacyId      String
+  prescriptionId  String?
+  status          String        @default("PENDING") // PENDING, PRESCRIPTION_REVIEW, CONFIRMED, PREPARING, READY, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
+  totalAmount     Float
+  taxAmount       Float         @default(0.0)
+  deliveryFee     Float         @default(0.0)
+  finalAmount     Float
+  deliveryType    String        @default("DELIVERY") // DELIVERY, PICKUP
+  shippingAddress String
+  contactPhone    String
+  customerNotes   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pharmacy        Pharmacy      @relation(fields: [pharmacyId], references: [id], onDelete: Cascade)
+  prescription    Prescription? @relation(fields: [prescriptionId], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+  payment         Payment?
+
+  @@index([userId])
+  @@index([pharmacyId])
+  @@index([status])
+}
+
+// Order Item Model
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  medicineId String
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  medicine   Medicine @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([medicineId])
+}
+
+// Payment Transaction Model
+model Payment {
+  id            String    @id @default(uuid())
+  orderId       String    @unique
+  amount        Float
+  paymentMethod String    @default("CASH_ON_DELIVERY") // CASH_ON_DELIVERY, CARD, UPI
+  paymentStatus String    @default("PENDING") // PENDING, COMPLETED, FAILED
+  transactionId String?
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
