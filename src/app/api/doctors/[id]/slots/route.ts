@@ -72,6 +72,7 @@ export async function GET(
       return {
         time: slotTime,
         date: requestedDate,
+        available: !isBooked,
         isAvailable: !isBooked,
       };
     });
@@ -82,7 +83,7 @@ export async function GET(
       speciality: doctor.speciality,
       date: requestedDate,
       slots,
-      availableCount: slots.filter((s) => s.isAvailable).length,
+      availableCount: slots.filter((s) => s.available).length,
       totalSlots: slots.length,
     });
   } catch (error) {

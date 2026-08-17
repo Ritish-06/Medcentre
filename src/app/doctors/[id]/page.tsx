@@ -39,7 +39,8 @@ interface DoctorDetail {
 interface SlotInfo {
   time: string;
   date: string;
-  available: boolean;
+  available?: boolean;
+  isAvailable?: boolean;
 }
 
 export default function DoctorBookingPage({
@@ -287,7 +288,7 @@ export default function DoctorBookingPage({
                       Select Available Time Slot
                     </label>
                     <span className="text-[11px] text-slate-400">
-                      {slots.filter((s) => s.available).length} slots open
+                      {slots.filter((s) => (s.available ?? (s as any).isAvailable)).length} slots open
                     </span>
                   </div>
 
@@ -302,17 +303,18 @@ export default function DoctorBookingPage({
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                       {slots.map((s) => {
+                        const isAvailable = s.available ?? (s as any).isAvailable ?? true;
                         const isSelected = selectedSlot === s.time;
                         return (
                           <button
                             type="button"
                             key={s.time}
-                            disabled={!s.available}
+                            disabled={!isAvailable}
                             onClick={() => setSelectedSlot(s.time)}
                             className={`p-3 rounded-2xl text-xs font-bold text-center border transition-all ${
                               isSelected
                                 ? 'bg-sky-600 text-white border-sky-600 shadow-md ring-2 ring-sky-300'
-                                : s.available
+                                : isAvailable
                                 ? 'bg-white text-slate-800 border-slate-200 hover:border-sky-500 hover:bg-sky-50/50'
                                 : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-50'
                             }`}
