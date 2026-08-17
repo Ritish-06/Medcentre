@@ -18,6 +18,7 @@ import {
   UserCheck,
   Ban,
   Plus,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface AppointmentItem {
@@ -47,6 +48,8 @@ export default function PatientAppointmentsPage() {
 
   const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingAppointment, setCancellingAppointment] = useState<AppointmentItem | null>(null);
+  const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
 
   const fetchAppointments = async () => {
     try {
@@ -66,10 +69,12 @@ export default function PatientAppointmentsPage() {
     fetchAppointments();
   }, []);
 
-  const handleCancelAppointment = async (id: string) => {
-    if (!confirm('Are you sure you want to cancel this appointment?')) return;
+  const confirmCancelAppointment = async () => {
+    if (!cancellingAppointment) return;
+    setIsSubmittingCancel(true);
+
     try {
-      const res = await fetch(`/api/appointments/${id}/status`, {
+      const res = await fetch(`/api/appointments/${cancellingAppointment.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'CANCEL' }),
@@ -77,13 +82,20 @@ export default function PatientAppointmentsPage() {
       const json = await res.json();
 
       if (json.success) {
-        showToast('Appointment cancelled', 'info');
-        fetchAppointments();
+        showToast('Appointment successfully cancelled', 'info');
+        setAppointments((prev) =>
+          prev.map((a) =>
+            a.id === cancellingAppointment.id ? { ...a, status: 'CANCELLED' } : a
+          )
+        );
+        setCancellingAppointment(null);
       } else {
         showToast(json.error?.message || 'Failed to cancel appointment', 'error');
       }
     } catch (e) {
       showToast('Network error cancelling appointment', 'error');
+    } finally {
+      setIsSubmittingCancel(false);
     }
   };
 
@@ -150,7 +162,7 @@ export default function PatientAppointmentsPage() {
               My Appointments & Consultations
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-              Manage your upcoming visits, view specialist details, and reschedule clinical appointments.
+              Manage your upcoming visits, view specialist details, and cancel or reschedule clinical appointments.
             </p>
           </div>
 
@@ -221,8 +233,8 @@ export default function PatientAppointmentsPage() {
                   {/* Actions */}
                   {apt.status === 'PENDING' || apt.status === 'CONFIRMED' ? (
                     <button
-                      onClick={() => handleCancelAppointment(apt.id)}
-                      className="px-4 py-2 rounded-xl border border-rose-200 text-rose-700 font-bold text-xs hover:bg-rose-50 transition-colors flex items-center gap-1.5"
+                      onClick={() => setCancellingAppointment(apt)}
+                      className="px-4 py-2 rounded-xl border border-rose-200 text-rose-700 font-bold text-xs hover:bg-rose-50 transition-colors flex items-center gap-1.5 shadow-xs"
                     >
                       <Ban className="w-3.5 h-3.5" />
                       Cancel Visit
@@ -239,6 +251,45 @@ export default function PatientAppointmentsPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Cancellation Confirmation Modal */}
+        {cancellingAppointment && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+            <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full border border-slate-200 shadow-2xl space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+
+              <div className="text-center space-y-1">
+                <h3 className="text-lg font-black text-slate-900">
+                  Cancel Appointment #{cancellingAppointment.appointmentNumber}?
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Are you sure you want to cancel your consultation with <strong className="text-slate-800">{cancellingAppointment.doctor.name}</strong> scheduled for <strong className="text-slate-800">{cancellingAppointment.date} at {cancellingAppointment.time}</strong>?
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={isSubmittingCancel}
+                  onClick={() => setCancellingAppointment(null)}
+                  className="py-3 rounded-2xl border border-slate-200 font-bold text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Keep Appointment
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmittingCancel}
+                  onClick={confirmCancelAppointment}
+                  className="py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-colors shadow-md shadow-rose-600/20 disabled:opacity-50"
+                >
+                  {isSubmittingCancel ? 'Cancelling...' : 'Yes, Cancel Visit'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>
