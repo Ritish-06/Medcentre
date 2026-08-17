@@ -50,13 +50,9 @@ export async function PATCH(
     let targetStatus = body.status;
     const action = body.action;
 
-    if (sessionUser.role === 'PATIENT') {
-      if (order.userId !== sessionUser.id) {
-        throw new ForbiddenError('You can only cancel your own orders.', 'FORBIDDEN');
-      }
-      if (action !== 'CANCEL' && targetStatus !== 'CANCELLED') {
-        throw new ForbiddenError('Patients can only perform cancellation on orders.', 'FORBIDDEN');
-      }
+    const isOrderOwner = order.userId === sessionUser.id;
+
+    if (isOrderOwner && (action === 'CANCEL' || targetStatus === 'CANCELLED')) {
       if (order.status === 'DELIVERED') {
         throw new BadRequestError('Delivered orders cannot be cancelled.', 'ORDER_ALREADY_DELIVERED');
       }

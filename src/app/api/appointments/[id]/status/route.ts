@@ -43,20 +43,21 @@ export async function PATCH(
       throw new NotFoundError(`Appointment '${id}' not found.`, 'APPOINTMENT_NOT_FOUND');
     }
 
-    // Role-based Authorization
-    if (sessionUser.role === 'PATIENT') {
-      if (appointment.patientId !== sessionUser.id) {
-        throw new ForbiddenError('You can only manage your own appointments.', 'FORBIDDEN_APPOINTMENT_ACCESS');
-      }
+    // Role-based & Owner Authorization
+    const isAppointmentOwner = appointment.patientId === sessionUser.id;
+    const isAssignedDoctor = appointment.doctor.userId === sessionUser.id;
+    const isAdmin = sessionUser.role === 'ADMIN';
+
+    if (isAppointmentOwner) {
       if (action && action.toUpperCase() !== 'CANCEL' && status !== 'CANCELLED') {
         throw new ForbiddenError('Patients can only cancel appointments.', 'FORBIDDEN_PATIENT_ACTION');
       }
-    } else if (sessionUser.role === 'DOCTOR') {
-      if (appointment.doctor.userId !== sessionUser.id) {
-        throw new ForbiddenError('You can only manage appointments assigned to your profile.', 'FORBIDDEN_DOCTOR_ACCESS');
-      }
-    } else if (sessionUser.role !== 'ADMIN') {
-      throw new ForbiddenError('Access denied.', 'FORBIDDEN');
+    } else if (isAssignedDoctor) {
+      // Assigned doctor can perform all doctor actions
+    } else if (isAdmin) {
+      // Admin has full management access
+    } else {
+      throw new ForbiddenError('You are not authorized to manage this appointment.', 'FORBIDDEN_APPOINTMENT_ACCESS');
     }
 
     let targetStatus = status;
