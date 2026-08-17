@@ -46,7 +46,25 @@ export async function PATCH(
       throw new UnauthorizedError('Authentication is required to update order status.', 'UNAUTHORIZED');
     }
 
-    if (sessionUser.role === 'PHARMACY') {
+    const body = await req.json();
+    let targetStatus = body.status;
+    const action = body.action;
+
+    if (sessionUser.role === 'PATIENT') {
+      if (order.userId !== sessionUser.id) {
+        throw new ForbiddenError('You can only cancel your own orders.', 'FORBIDDEN');
+      }
+      if (action !== 'CANCEL' && targetStatus !== 'CANCELLED') {
+        throw new ForbiddenError('Patients can only perform cancellation on orders.', 'FORBIDDEN');
+      }
+      if (order.status === 'DELIVERED') {
+        throw new BadRequestError('Delivered orders cannot be cancelled.', 'ORDER_ALREADY_DELIVERED');
+      }
+      if (order.status === 'CANCELLED') {
+        throw new BadRequestError('Order is already cancelled.', 'ORDER_ALREADY_CANCELLED');
+      }
+      targetStatus = 'CANCELLED';
+    } else if (sessionUser.role === 'PHARMACY') {
       const userPharmacy = await prisma.pharmacy.findUnique({
         where: { userId: sessionUser.id },
       });
@@ -57,12 +75,8 @@ export async function PATCH(
         );
       }
     } else if (sessionUser.role !== 'ADMIN') {
-      throw new ForbiddenError('Only pharmacy staff or administrators can update order status.', 'FORBIDDEN');
+      throw new ForbiddenError('Only pharmacy staff, administrators, or order owners can update order status.', 'FORBIDDEN');
     }
-
-    const body = await req.json();
-    let targetStatus = body.status;
-    const action = body.action;
 
     // Handle high-level workflow actions
     if (action) {

@@ -81,11 +81,12 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        const medName = med.medicineName || med.name || 'Prescribed Medicine';
         await tx.prescriptionMedicine.create({
           data: {
             prescriptionId: prescription.id,
             medicineId: dbMedicine ? dbMedicine.id : null,
-            medicineName: med.medicineName,
+            medicineName: medName,
             strength: med.strength || '500mg',
             dosageForm: med.dosageForm || 'Tablet',
             frequency: med.frequency || 'Twice daily',
