@@ -92,7 +92,7 @@ export default function OrderTrackingPage({
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  const fetchOrder = async () => {
+  const fetchOrder = React.useCallback(async () => {
     try {
       const res = await fetch(`/api/orders/${params.id}`);
       const json = await res.json();
@@ -106,11 +106,11 @@ export default function OrderTrackingPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id]);
 
   useEffect(() => {
     fetchOrder();
-  }, [params.id]);
+  }, [fetchOrder]);
 
   const handleCancelOrder = async () => {
     if (!order) return;
