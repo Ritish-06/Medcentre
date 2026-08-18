@@ -1,6 +1,5 @@
 export interface ApiSuccessResponse<T = any> {
   success: true;
-  message?: string;
   data: T;
   meta?: {
     total?: number;
@@ -19,4 +18,4 @@ export interface ApiErrorResponse {
   };
 }
 
-export type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+export type ApiResponseContract<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
