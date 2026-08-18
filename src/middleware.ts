@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
+import { jwtVerify } from 'jose/jwt/verify';
 
 const COOKIE_NAME = 'medcentre_session';
 const JWT_SECRET = new TextEncoder().encode(
