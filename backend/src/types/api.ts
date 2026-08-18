@@ -1,5 +1,6 @@
 export interface ApiSuccessResponse<T = any> {
   success: true;
+  message?: string;
   data: T;
   meta?: {
     total?: number;

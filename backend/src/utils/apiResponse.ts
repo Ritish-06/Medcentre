@@ -5,13 +5,15 @@ import { ApiErrorResponse, ApiSuccessResponse } from '../types/api';
 export class ApiResponse {
   static success<T>(
     res: Response,
-    data: T,
+    data?: T,
     statusCode: number = HTTP_STATUS.OK,
+    message?: string,
     meta?: ApiSuccessResponse<T>['meta']
   ) {
-    const responsePayload: ApiSuccessResponse<T> = {
+    const responsePayload: any = {
       success: true,
-      data,
+      ...(message ? { message } : {}),
+      ...(data !== undefined ? { data } : {}),
       ...(meta ? { meta } : {}),
     };
     return res.status(statusCode).json(responsePayload);
