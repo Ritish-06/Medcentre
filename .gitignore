@@ -29,6 +29,8 @@ backend/prisma/dev.db
 .env*.local
 backend/.env
 backend/.env*.local
+!.env.example
+!backend/.env.example
 
 # Uploads & Media storage
 uploads/
