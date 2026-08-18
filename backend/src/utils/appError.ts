@@ -13,6 +13,7 @@ export class AppError extends Error {
     details?: any
   ) {
     super(message);
+    this.name = this.constructor.name;
     this.statusCode = statusCode;
     this.errorCode = errorCode;
     this.details = details;
@@ -20,32 +21,53 @@ export class AppError extends Error {
 
     Error.captureStackTrace(this, this.constructor);
   }
+}
 
-  static badRequest(message: string, details?: any) {
-    return new AppError(message, HTTP_STATUS.BAD_REQUEST, ERROR_CODES.BAD_REQUEST, details);
+/** 400 Bad Request Error */
+export class BadRequestError extends AppError {
+  constructor(message: string = 'Bad request', details?: any) {
+    super(message, HTTP_STATUS.BAD_REQUEST, ERROR_CODES.BAD_REQUEST, details);
   }
+}
 
-  static unauthorized(message: string = 'Authentication required') {
-    return new AppError(message, HTTP_STATUS.UNAUTHORIZED, ERROR_CODES.UNAUTHORIZED);
+/** 401 Unauthorized Error */
+export class UnauthorizedError extends AppError {
+  constructor(message: string = 'Authentication required', details?: any) {
+    super(message, HTTP_STATUS.UNAUTHORIZED, ERROR_CODES.UNAUTHORIZED, details);
   }
+}
 
-  static forbidden(message: string = 'Access denied for this role') {
-    return new AppError(message, HTTP_STATUS.FORBIDDEN, ERROR_CODES.FORBIDDEN);
+/** 403 Forbidden Error */
+export class ForbiddenError extends AppError {
+  constructor(message: string = 'Access denied: insufficient permissions', details?: any) {
+    super(message, HTTP_STATUS.FORBIDDEN, ERROR_CODES.FORBIDDEN, details);
   }
+}
 
-  static notFound(message: string = 'Resource not found') {
-    return new AppError(message, HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND);
+/** 404 Not Found Error */
+export class NotFoundError extends AppError {
+  constructor(message: string = 'Requested resource not found', details?: any) {
+    super(message, HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND, details);
   }
+}
 
-  static conflict(message: string) {
-    return new AppError(message, HTTP_STATUS.CONFLICT, ERROR_CODES.CONFLICT);
+/** 409 Conflict Error */
+export class ConflictError extends AppError {
+  constructor(message: string = 'Resource conflict detected', details?: any) {
+    super(message, HTTP_STATUS.CONFLICT, ERROR_CODES.CONFLICT, details);
   }
+}
 
-  static validation(message: string, details?: any) {
-    return new AppError(message, HTTP_STATUS.UNPROCESSABLE_ENTITY, ERROR_CODES.VALIDATION_ERROR, details);
+/** 422 Validation Error */
+export class ValidationError extends AppError {
+  constructor(message: string = 'Validation failed', details?: any) {
+    super(message, HTTP_STATUS.UNPROCESSABLE_ENTITY, ERROR_CODES.VALIDATION_ERROR, details);
   }
+}
 
-  static internal(message: string = 'Internal server error') {
-    return new AppError(message, HTTP_STATUS.INTERNAL_SERVER_ERROR, ERROR_CODES.INTERNAL_ERROR);
+/** 500 Internal Server Error */
+export class InternalServerError extends AppError {
+  constructor(message: string = 'Internal server error occurred', details?: any) {
+    super(message, HTTP_STATUS.INTERNAL_SERVER_ERROR, ERROR_CODES.INTERNAL_ERROR, details);
   }
 }
