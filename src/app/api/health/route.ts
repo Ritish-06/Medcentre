@@ -2,6 +2,8 @@ import { apiSuccess } from '@/lib/api/response';
 import { handleApiError } from '@/lib/api/error';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // Verify database connectivity
