@@ -135,7 +135,8 @@ FileName: ${fileName}
     const rawText = await OCRService.extractText(fileBuffer, mimeType, fileName);
 
     // 2. Persist OCRResult
-    const ocrResult = await prisma.ocrResult.create({
+    const ocrDelegate = (prisma as any).oCRResult || (prisma as any).ocrResult;
+    const ocrResult = await ocrDelegate.create({
       data: {
         prescriptionId,
         rawText,

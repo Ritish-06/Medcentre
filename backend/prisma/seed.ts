@@ -375,7 +375,8 @@ async function main() {
     },
   });
 
-  await prisma.ocrResult.create({
+  const ocrDel = (prisma as any).oCRResult || (prisma as any).ocrResult;
+  await ocrDel.create({
     data: {
       prescriptionId: samplePrescription.id,
       rawText: 'Rx: Amoxicillin 500mg Capsule, Paracetamol 650mg Tablet, Atorvastatin 20mg Tablet. Sign: Dr. Sarah Connor, MD.',
