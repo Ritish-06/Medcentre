@@ -17,12 +17,11 @@ backend/dist/
 next-env.d.ts
 
 # Databases & SQLite files
-*.db
 *.db-journal
 *.sqlite
 *.sqlite3
-prisma/dev.db
 backend/prisma/dev.db
+!prisma/dev.db
 
 # Environment variables & secrets
 .env
