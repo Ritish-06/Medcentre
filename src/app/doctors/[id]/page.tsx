@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { AuthModal } from '@/components/ui/AuthModal';
 import {
   Stethoscope,
   MapPin,
@@ -49,11 +51,13 @@ export default function DoctorBookingPage({
   params: { id: string };
 }) {
   const router = useRouter();
+  const { user } = useAuth();
   const { showToast } = useToast();
 
   const [doctor, setDoctor] = useState<DoctorDetail | null>(null);
   const [loadingDoctor, setLoadingDoctor] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
   // Booking form states
   const todayStr = new Date().toISOString().split('T')[0];
@@ -111,6 +115,11 @@ export default function DoctorBookingPage({
     e.preventDefault();
     if (!selectedSlot) {
       showToast('Please choose an available appointment slot.', 'error');
+      return;
+    }
+
+    if (!user) {
+      setShowAuthModal(true);
       return;
     }
 
@@ -360,6 +369,13 @@ export default function DoctorBookingPage({
           </div>
         </div>
       </main>
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        title="Sign In to Book Consultation"
+        message="Please sign in or create an account to confirm your doctor consultation and receive appointment reminders."
+      />
     </div>
   );
 }

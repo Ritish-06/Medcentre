@@ -3,10 +3,12 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { AuthModal } from '@/components/ui/AuthModal';
 import {
   Building2,
   Pill,
@@ -59,6 +61,7 @@ interface PharmacyStockMatch {
 function MedicineAvailabilityContent() {
   const searchParams = useSearchParams();
   const medicineId = searchParams.get('medicineId');
+  const { user } = useAuth();
   const { addToCart } = useCart();
 
   const [medicine, setMedicine] = useState<Medicine | null>(null);
@@ -66,6 +69,8 @@ function MedicineAvailabilityContent() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [addingPharmacyId, setAddingPharmacyId] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [pendingMatch, setPendingMatch] = useState<PharmacyStockMatch | null>(null);
 
   useEffect(() => {
     async function fetchMedicineAvailability() {
@@ -98,6 +103,12 @@ function MedicineAvailabilityContent() {
 
   const handleAddToCart = async (match: PharmacyStockMatch) => {
     if (!medicine) return;
+    if (!user) {
+      setPendingMatch(match);
+      setShowAuthModal(true);
+      return;
+    }
+
     setAddingPharmacyId(match.pharmacy.id);
     try {
       await addToCart(medicine.id, match.pharmacy.id, 1);
@@ -222,6 +233,19 @@ function MedicineAvailabilityContent() {
           )}
         </div>
       </main>
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        title="Sign In to Add to Cart"
+        message="Sign in with your MedCentre account to reserve medicines and place pharmacy orders."
+        onSuccess={() => {
+          if (pendingMatch && medicine) {
+            addToCart(medicine.id, pendingMatch.pharmacy.id, 1);
+            setPendingMatch(null);
+          }
+        }}
+      />
     </div>
   );
 }
